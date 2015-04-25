@@ -9,6 +9,7 @@ import org.grouplens.lenskit.eval.metrics.predict.RMSEPredictMetric
 import org.grouplens.lenskit.knn.item.ItemItemScorer
 import org.grouplens.lenskit.transform.normalize.BaselineSubtractingUserVectorNormalizer
 import org.grouplens.lenskit.transform.normalize.UserVectorNormalizer
+import org.lenskit.demo.eval.ExtendedItemUserMeanScorer
 
 trainTest("eval") {
     // options can be listed here in any order. This order happens to make sense to me.
@@ -74,5 +75,10 @@ trainTest("eval") {
         within (UserVectorNormalizer) {
             bind (BaselineScorer, ItemScorer) to ItemMeanRatingItemScorer
         }
+    }
+
+    // Custom algorithm
+    algorithm("Custom") {
+        bind ItemScorer to ExtendedItemUserMeanScorer
     }
 }
