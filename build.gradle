@@ -1,0 +1,11 @@
+buildScript {
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'org.grouplens.lenskit:lenskit-gradle:2.2-M4'
+    }
+}
+
+apply plugin: 'java'
+apply plugin: 'lenskit'
