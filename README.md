@@ -35,7 +35,8 @@ More information on LensKit and its evaluator can be found on the [LensKit web s
 
 # Copyright
 
-This project was created by the LensKit contributors.
+This project was created by the LensKit contributors, primarily Michael Ekstrand, Daniel Kluver,
+and John Riedl.
 
 The files in this project may be freely modified, used, and distributed without restriction.
 
