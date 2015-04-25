@@ -1,5 +1,5 @@
 /* This file may be freely modified, used, and redistributed without restriction. */
-package ${package};
+package org.lenskit.demo.eval;
 
 import org.grouplens.grapht.annotation.DefaultProvider;
 import org.grouplens.lenskit.baseline.MeanDamping;

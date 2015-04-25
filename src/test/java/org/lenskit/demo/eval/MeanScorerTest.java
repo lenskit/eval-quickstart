@@ -1,5 +1,5 @@
 /* This file may be freely modified, used, and redistributed without restriction. */
-package ${package};
+package org.lenskit.demo.eval;
 
 import it.unimi.dsi.fastutil.longs.LongSortedSet;
 import org.grouplens.lenskit.ItemScorer;

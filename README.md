@@ -1,29 +1,23 @@
-# LensKit-archetype-fancy-analysis
+# LensKit Evaluation Quickstart
 
-This archetype is to build more sophisticated projects for doing
-analysis of recommender algorithms, and that organize the input and
-output according to maven best practices.  All of the scripts for the
-eval are in the src/eval directory.  Each script takes in some input
-data, and produces some output data.  The archetype is intended to be
-used with the following structure:
-
-* lenskit-eval: takes data from the target/data directory and creates
-  a set of crossfold datasets also in target/data.  Runs an evaluation
-  script in src/eval/eval.groovy, which operates on the crossfold data
-  in target/data, and produces output in target/analysis.
+This example project shows how to run and evaluate a custom LensKit recommender component using
+Gradle, the current recommended way to run LensKit evaluations.  It is intended to serve as a
+template for you to use when you create new LensKit evaluations.
 
 The key user files that you are likely to want to edit are:
-* pom.xml: to change the value of grouplens.mldata.acknowledgement and
-  do general configuration.
-* src/eval/eval.groovy: to change the lenskit evaluation that is run,
-  perhaps by configuring different recommenders.  This also downloads the
-  data set and runs the R script for post-analysis.
-* src/eval/chart.py: to change the analysis of the output data in target/analysis,
-  perhaps including the charts that are generated.
 
-This structure fits the Maven model: all input files are in the src
-tree, and all generated files are in the target tree, where they may
-be cleaned by the clean target.
+-   `build.gradle`: to configure the build, add dependencies, etc.
+-   `eval.groovy`: to change the lenskit evaluation that is run,
+    perhaps by configuring different recommenders.
+=   `chart.py`: to change the analysis of the output data in `build`,
+    perhaps including the charts that are generated.
+  
+To run the evaluation, run:
+
+    ./gradlew evaluate
+
+As is typical with Gradle projects, all output files go in the `build` directory, where they can
+be removed with `./gradlew clean`.
 
 ## Example Scorer
 
@@ -35,6 +29,16 @@ scorer along with some well-known rating prediction algorithms.
 
 # More Information
 
-Information on using the archetype is on the LensKit [wiki][] in the Getting Started section.
+More information on LensKit and its evaluator can be found on the [LensKit web site][web].
 
-[wiki]: http://bitbucket.org/grouplens/lenskit/wiki/
+[web]: http://lenskit.org/documentation/
+
+# Copyright
+
+This project was created by the LensKit contributors.
+
+The files in this project may be freely modified, used, and distributed without restriction.
+
+If further legal clarity is required, these files are licensed under [Creative Commons CC0][CC0].
+
+[CC0]: https://creativecommons.org/publicdomain/zero/1.0/

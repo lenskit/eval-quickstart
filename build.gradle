@@ -1,5 +1,13 @@
+/* This file may be freely modified, used, and redistributed without restriction. */
+/* Set up the repositories to get the LensKit plugin.
+ * This configuration pulls in things needed for the build.gradle script itself */
 buildscript {
     repositories {
+        // LensKit snapshots are published to the Sonatype snapshot repository
+        maven {
+            url 'https://oss.sonatype.org/content/repositories/snapshots/'
+        }
+        // LensKit releases are published to Maven Central
         mavenCentral()
     }
     dependencies {
@@ -7,5 +15,74 @@ buildscript {
     }
 }
 
-apply plugin: 'java'
+
+apply plugin: 'java' // if you use Groovy or Scala, add those plugins
 apply plugin: 'lenskit'
+
+/* Configure LensKit */
+lenskit {
+    version '2.2-M4'
+    // you can also configure the threadCount and maxMemory here, or on the command line
+    // e.g. -PthreadCount=8
+}
+
+import org.grouplens.lenskit.gradle.*
+
+/* Set up the repositories for getting LensKit and other libraries.
+ * These repositories are used for your Java or Groovy code, and for running LensKit.
+ */
+repositories {
+    maven {
+        url 'https://oss.sonatype.org/content/repositories/snapshots/'
+    }
+    mavenCentral()
+}
+
+configurations {
+    lenskit.extendsFrom runtime
+}
+
+dependencies {
+    // Code needs to build with LensKit.
+    compile "org.grouplens.lenskit:lenskit-all:$lenskit.version"
+    // To run the code, we also need the LensKit CLI.
+    runtime "org.grouplens.lenskit:lenskit-cli:$lenskit.version"
+
+    // Tests use JUnit
+    testCompile "junit:junit:4.12"
+}
+
+/* Download the MovieLens data set */
+task fetchData {
+    description 'Fetches the MovieLens data set.'
+    ext.dataDir = "$buildDir/ml-100k"
+    ext.zipFile = "$buildDir/ml-100k.zip"
+
+    outputs.dir dataDir
+    outputs.file zipFile
+
+    doLast {
+        mkdir dataDir
+        ant {
+            get(src: 'http://www.grouplens.org/system/files/ml-100k.zip',
+                dest: zipFile,
+                skipExisting: true)
+            unzip(src: zipFile, dest: dataDir) {
+                patternset {
+                    include name: 'ml-100k/*'
+                }
+                mapper type: 'flatten'
+            }
+        }
+    }
+}
+
+/* Run the LensKit evaluation */
+task evaluate(type: LenskitEval, group: 'evaluate') {
+    description 'Runs the LensKit evaluation.'
+    dependsOn classes                           // perform java compilation before running this
+    dependsOn fetchData                         // download data before evaluating
+    script 'eval.groovy'                        // configure the name of the lenskit eval description
+
+    classpath sourceSets.main.runtimeClasspath  // use the code we have here, plus its deps
+}

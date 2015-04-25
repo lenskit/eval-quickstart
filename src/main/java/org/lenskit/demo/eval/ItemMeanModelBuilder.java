@@ -1,4 +1,5 @@
-package ${package};
+/* This file may be freely modified, used, and redistributed without restriction. */
+package org.lenskit.demo.eval;
 
 import it.unimi.dsi.fastutil.longs.Long2DoubleMap;
 import it.unimi.dsi.fastutil.longs.Long2DoubleOpenHashMap;
