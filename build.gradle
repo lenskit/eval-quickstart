@@ -84,5 +84,23 @@ task evaluate(type: LenskitEval, group: 'evaluate') {
     dependsOn fetchData                         // download data before evaluating
     script 'eval.groovy'                        // configure the name of the lenskit eval description
 
+    input.dir fetchData.dataDir
+    output.files "$buildDir/eval-results.csv", "$buildDir/eval-user.csv"
+
     classpath sourceSets.main.runtimeClasspath  // use the code we have here, plus its deps
+}
+
+task drawCharts(type: Exec, group: 'evalaute') {
+    description 'Post-processes evaluation results to draw charts.'
+
+    dependsOn evaluate
+    inputs.file "$buildDir/eval-results.csv"
+    outputs.dir "$buildDir/charts"
+
+    executable 'python'
+    args 'chart.py'
+
+    doFirst {
+        mkdir "$buildDir/chargs"
+    }
 }
