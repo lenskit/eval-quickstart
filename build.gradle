@@ -1,4 +1,4 @@
-buildScript {
+buildscript {
     repositories {
         mavenCentral()
     }
