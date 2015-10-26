@@ -90,23 +90,21 @@ task evaluate(type: LenskitEval, group: 'evaluate') {
     classpath sourceSets.main.runtimeClasspath  // use the code we have here, plus its deps
 }
 
-task drawCharts(type: Exec, group: 'evaluate') {
+task analyzeResults(type: Exec, group: 'evaluate') {
     description 'Post-processes evaluation results to draw charts.'
 
     dependsOn evaluate
-    inputs.file "$buildDir/eval-results.csv"
-    outputs.dir "$buildDir/charts"
 
-    /* run Python. Location can be overridden with -Ppython.bin=/usr/bin/python */
-    if (project.hasProperty('python.bin')) {
-        executable project.getProperty('python.bin')
+    inputs.files "$buildDir/eval-results.csv", 'analyze-output.ipynb'
+    outputs.file "$buildDir/analysis.html"
+
+    /* run Jupyter/IPython. Location can be overridden with -Pipython.bin=/usr/bin/ipython */
+    if (project.hasProperty('ipython.bin')) {
+        executable project.getProperty('ipython.bin')
     } else {
-        executable 'python'
+        executable 'jupyter'
     }
-    args 'chart.py'
-
-    doFirst {
-        // make sure output directory is created!
-        mkdir "$buildDir/charts"
-    }
+    args 'nbconvert', '--to', 'html', '--execute'
+    args '--output', file("$buildDir/analysis.html")
+    args file("analyze-output.ipynb")
 }
