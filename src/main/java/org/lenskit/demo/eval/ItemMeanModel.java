@@ -1,11 +1,11 @@
 /* This file may be freely modified, used, and redistributed without restriction. */
 package org.lenskit.demo.eval;
 
+import it.unimi.dsi.fastutil.longs.Long2DoubleMap;
 import org.grouplens.grapht.annotation.DefaultProvider;
-import org.grouplens.lenskit.baseline.MeanDamping;
-import org.grouplens.lenskit.core.Shareable;
-import org.grouplens.lenskit.vectors.ImmutableSparseVector;
-import org.grouplens.lenskit.vectors.SparseVector;
+import org.lenskit.baseline.MeanDamping;
+import org.lenskit.inject.Shareable;
+import org.lenskit.util.keys.Long2DoubleSortedArrayMap;
 
 import java.io.Serializable;
 
@@ -26,13 +26,13 @@ import java.io.Serializable;
 @Shareable
 @DefaultProvider(ItemMeanModelBuilder.class)
 public class ItemMeanModel implements Serializable {
-    private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 2L;
 
     private final double globalMean;
-    private final ImmutableSparseVector itemOffsets;
+    private final Long2DoubleMap itemOffsets;
 
-    public ItemMeanModel(double global, SparseVector items) {
-        itemOffsets = items.immutable();
+    public ItemMeanModel(double global, Long2DoubleMap items) {
+        itemOffsets = new Long2DoubleSortedArrayMap(items);
         globalMean = global;
     }
 
@@ -50,8 +50,17 @@ public class ItemMeanModel implements Serializable {
      * @return The vector of item mean offsets.  These are mean offsets from the global mean rating,
      *         so add the global mean to each rating to get the item mean.
      */
-    public ImmutableSparseVector getItemOffsets() {
+    public Long2DoubleMap getItemOffsets() {
         return itemOffsets;
+    }
+
+    /**
+     * Get the offset for an item. This is the difference between the item's mean rating and the
+     * global mean.
+     * @return The item offset.  This will be 0 for unknown items.
+     */
+    public double getItemOffset(long item) {
+        return itemOffsets.get(item);
     }
 
 }
