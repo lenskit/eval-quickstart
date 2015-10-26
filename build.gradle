@@ -3,7 +3,6 @@
  * This configuration pulls in things needed for the build.gradle script itself */
 buildscript {
     repositories {
-        mavenLocal()
         // LensKit snapshots are published to the Sonatype snapshot repository
         maven {
             url 'https://oss.sonatype.org/content/repositories/snapshots/'
