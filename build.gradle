@@ -11,7 +11,7 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath 'org.grouplens.lenskit:lenskit-gradle:2.2-M4'
+        classpath 'org.grouplens.lenskit:lenskit-gradle:2.2'
     }
 }
 
@@ -21,7 +21,7 @@ apply plugin: 'lenskit'
 
 /* Configure LensKit */
 lenskit {
-    version '2.2-M4'
+    version '2.2'
     // you can also configure the threadCount and maxMemory here, or on the command line
     // e.g. -PthreadCount=8
 }
