@@ -49,8 +49,8 @@ import org.lenskit.gradle.*
 /* Download the MovieLens data set */
 task fetchData {
     description 'Fetches the MovieLens data set.'
-    ext.dataDir = "$buildDir/ml-100k"
-    ext.zipFile = "$buildDir/ml-100k.zip"
+    ext.dataDir = "data/ml-100k"
+    ext.zipFile = "data/ml-100k.zip"
 
     outputs.dir dataDir
     outputs.file zipFile
@@ -76,7 +76,7 @@ task crossfold(type: Crossfold, group: 'evaluate') {
     dependsOn fetchData
 
     input textFile {
-        file "$buildDir/ml-100k/u.data"
+        file "data/ml-100k/u.data"
         delimiter "\t"
         // ratings are on a 1-5 scale
         domain {
@@ -115,6 +115,7 @@ task evaluate(type: TrainTest, group: 'evaluate') {
         metric 'ndcg'
     }
     recommend {
+        listLength 10
         metric 'mrr'
     }
 }
@@ -138,16 +139,8 @@ task analyzeResults(type: Exec, group: 'evaluate') {
     args file("analyze-output.ipynb")
 }
 
-task debug {
+task cleanData {
     doLast {
-        println(evaluate.class)
-        println('inputs:')
-        for (inf in evaluate.inputs.files) {
-            println('  ' + inf)
-        }
-        println('outputs:')
-        for (outf in evaluate.outputs.files.files) {
-            println('  ' + outf)
-        }
+        delete 'data'
     }
 }
