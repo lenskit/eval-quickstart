@@ -11,7 +11,7 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath 'org.grouplens.lenskit:lenskit-gradle:3.0-T2-SNAPSHOT'
+        classpath 'org.lenskit:lenskit-gradle:3.0-M1'
     }
 }
 
@@ -30,9 +30,9 @@ repositories {
 
 dependencies {
     // Code needs to build with LensKit.
-    compile "org.grouplens.lenskit:lenskit-all:3.0-T2-SNAPSHOT"
+    compile "org.lenskit:lenskit-all:3.0-M1"
     // To run the code, we also need the LensKit CLI.
-    runtime "org.grouplens.lenskit:lenskit-cli:3.0-T2-SNAPSHOT"
+    runtime "org.lenskit:lenskit-cli:3.0-M1"
 
     // Tests use JUnit
     testCompile "junit:junit:4.12"
@@ -75,22 +75,11 @@ task crossfold(type: Crossfold, group: 'evaluate') {
     // download data before evaluating
     dependsOn fetchData
 
-    input textFile {
-        file "data/ml-100k/u.data"
-        delimiter "\t"
-        // ratings are on a 1-5 scale
-        domain {
-            minimum 1.0
-            maximum 5.0
-            precision 1.0
-        }
-    }
+    input 'data/ml-100k.yml'
     // test on random 1/5 of each user's ratings
-    userPartitionMethod holdoutFraction(0.2, 'random')
+    holdoutFraction(0.2, 'random')
     // use 5-fold cross-validation
     partitionCount 5
-    // pack data for efficiency
-    outputFormat 'PACK'
 }
 
 /* Run the LensKit evaluation */
@@ -115,7 +104,7 @@ task evaluate(type: TrainTest, group: 'evaluate') {
         metric 'ndcg'
     }
     recommend {
-        listLength 10
+        listSize10
         metric 'mrr'
     }
 }

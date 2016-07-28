@@ -1,0 +1,5 @@
+ratings:
+  file: ml-100k/u.data
+  format: tsv
+  header: false
+  entity_type: rating
