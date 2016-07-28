@@ -104,7 +104,7 @@ task evaluate(type: TrainTest, group: 'evaluate') {
         metric 'ndcg'
     }
     recommend {
-        listSize10
+        listSize 10
         metric 'mrr'
     }
 }
