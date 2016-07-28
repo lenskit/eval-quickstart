@@ -5,14 +5,11 @@ import it.unimi.dsi.fastutil.longs.Long2DoubleMap;
 import it.unimi.dsi.fastutil.longs.Long2DoubleOpenHashMap;
 import it.unimi.dsi.fastutil.longs.Long2IntMap;
 import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
-import org.grouplens.lenskit.baseline.MeanDamping;
-import org.grouplens.lenskit.core.Transient;
-import org.grouplens.lenskit.cursors.Cursor;
-import org.grouplens.lenskit.data.dao.EventDAO;
-import org.grouplens.lenskit.data.event.Rating;
-import org.grouplens.lenskit.data.pref.Preference;
-import org.grouplens.lenskit.vectors.MutableSparseVector;
-import org.grouplens.lenskit.vectors.VectorEntry;
+import org.lenskit.baseline.MeanDamping;
+import org.lenskit.data.dao.EventDAO;
+import org.lenskit.data.ratings.Rating;
+import org.lenskit.inject.Transient;
+import org.lenskit.util.io.ObjectStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,29 +53,25 @@ public class ItemMeanModelBuilder implements Provider<ItemMeanModel> {
         int count = 0;
         // map to sum item ratings
         Long2DoubleMap itemRatingSums = new Long2DoubleOpenHashMap();
-        // fastutil lets us specify a defualt value; this makes sums easier to accumulate
+        // fastutil lets us specify a default value; this makes sums easier to accumulate
         itemRatingSums.defaultReturnValue(0.0);
         // map to count item ratings
         Long2IntMap itemRatingCounts = new Long2IntOpenHashMap();
         itemRatingCounts.defaultReturnValue(0);
 
-        Cursor<Rating> ratings = dao.streamEvents(Rating.class);
-        try {
-            for (Rating rating: ratings.fast()) {
-                Preference pref = rating.getPreference();
-                if (pref == null) {
+        try (ObjectStream<Rating> ratings = dao.streamEvents(Rating.class)) {
+            for (Rating rating: ratings) {
+                if (!rating.hasValue()) {
                     continue; // skip unrates
                 }
 
-                long i = pref.getItemId();
-                double v = pref.getValue();
+                long i = rating.getItemId();
+                double v = rating.getValue();
                 total += v;
                 count++;
                 itemRatingSums.put(i, v + itemRatingSums.get(i));
                 itemRatingCounts.put(i, 1 + itemRatingCounts.get(i));
             }
-        } finally {
-            ratings.close();
         }
 
         final double mean = count > 0 ? total / count : 0;
@@ -86,20 +79,19 @@ public class ItemMeanModelBuilder implements Provider<ItemMeanModel> {
                      mean, itemRatingSums.size());
 
         logger.debug("Computing item offsets, damping={}", damping);
-        // create a vector to hold item mean offsets
-        MutableSparseVector vector = MutableSparseVector.create(itemRatingCounts.keySet());
-        // iterate over *all* vector entries, including unset ones
-        // we use 'fast iteration' since we won't use entry objects outside the loop
-        for (VectorEntry e: vector.fast(VectorEntry.State.EITHER)) {
+        // create a map to hold item mean offsets
+        Long2DoubleMap offsets = new Long2DoubleOpenHashMap(itemRatingSums.size());
+        // now iterate over our items
+        for (Long2DoubleMap.Entry e: itemRatingSums.long2DoubleEntrySet()) {
             final long iid = e.getKey();
             // compute the damped item mean
             final double itemCount = itemRatingCounts.get(iid) + damping;
-            final double itemTotal = itemRatingSums.get(iid) + damping * mean;
+            final double itemTotal = e.getDoubleValue() + damping * mean;
             if (itemCount > 0) {
-                vector.set(e, itemTotal / itemCount - mean);
+                offsets.put(iid, (itemTotal / itemCount) - mean);
             }
         }
 
-        return new ItemMeanModel(mean, vector.freeze());
+        return new ItemMeanModel(mean, offsets);
     }
 }

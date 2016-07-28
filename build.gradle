@@ -11,22 +11,12 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath 'org.grouplens.lenskit:lenskit-gradle:2.2'
+        classpath 'org.lenskit:lenskit-gradle:3.0-M1'
     }
 }
 
-
 apply plugin: 'java' // if you use Groovy or Scala, add those plugins
 apply plugin: 'lenskit'
-
-/* Configure LensKit */
-lenskit {
-    version '2.2'
-    // you can also configure the threadCount and maxMemory here, or on the command line
-    // e.g. -PthreadCount=8
-}
-
-import org.grouplens.lenskit.gradle.*
 
 /* Set up the repositories for getting LensKit and other libraries.
  * These repositories are used for your Java or Groovy code, and for running LensKit.
@@ -38,25 +28,29 @@ repositories {
     mavenCentral()
 }
 
-configurations {
-    lenskit.extendsFrom runtime
-}
-
 dependencies {
     // Code needs to build with LensKit.
-    compile "org.grouplens.lenskit:lenskit-all:$lenskit.version"
+    compile "org.lenskit:lenskit-all:3.0-M1"
     // To run the code, we also need the LensKit CLI.
-    runtime "org.grouplens.lenskit:lenskit-cli:$lenskit.version"
+    runtime "org.lenskit:lenskit-cli:3.0-M1"
 
     // Tests use JUnit
     testCompile "junit:junit:4.12"
 }
 
+/* Configure LensKit */
+lenskit {
+    // you can configure the threadCount and maxMemory here, or on the command line
+    // e.g. -PthreadCount=8
+}
+
+import org.lenskit.gradle.*
+
 /* Download the MovieLens data set */
 task fetchData {
     description 'Fetches the MovieLens data set.'
-    ext.dataDir = "$buildDir/ml-100k"
-    ext.zipFile = "$buildDir/ml-100k.zip"
+    ext.dataDir = "data/ml-100k"
+    ext.zipFile = "data/ml-100k.zip"
 
     outputs.dir dataDir
     outputs.file zipFile
@@ -77,17 +71,42 @@ task fetchData {
     }
 }
 
+task crossfold(type: Crossfold, group: 'evaluate') {
+    // download data before evaluating
+    dependsOn fetchData
+
+    input 'data/ml-100k.yml'
+    // test on random 1/5 of each user's ratings
+    holdoutFraction(0.2, 'random')
+    // use 5-fold cross-validation
+    partitionCount 5
+}
+
 /* Run the LensKit evaluation */
-task evaluate(type: LenskitEval, group: 'evaluate') {
+task evaluate(type: TrainTest, group: 'evaluate') {
     description 'Runs the LensKit evaluation.'
-    dependsOn classes                           // perform java compilation before running this
-    dependsOn fetchData                         // download data before evaluating
-    script 'eval.groovy'                        // configure the name of the lenskit eval description
 
-    inputs.dir fetchData.dataDir
-    outputs.files "$buildDir/eval-results.csv", "$buildDir/eval-user.csv"
+    // we add our crossfold task as evaluation input
+    dataSet crossfold
 
-    classpath sourceSets.main.runtimeClasspath  // use the code we have here, plus its deps
+    // send the output to appropriate files
+    outputFile "$buildDir/eval-results.csv"
+    userOutputFile "$buildDir/eval-users.csv"
+
+    // configure our algorithms
+    algorithm 'PersMean', 'algorithms/pers-mean.groovy'
+    algorithm 'ItemItem', 'algorithms/item-item.groovy'
+    algorithm 'Custom', 'algorithms/custom.groovy'
+
+    // and some evaluation tasks and metrics
+    predict {
+        metric 'rmse'
+        metric 'ndcg'
+    }
+    recommend {
+        listSize10
+        metric 'mrr'
+    }
 }
 
 task analyzeResults(type: Exec, group: 'evaluate') {
@@ -107,4 +126,10 @@ task analyzeResults(type: Exec, group: 'evaluate') {
     args 'nbconvert', '--to', 'html', '--execute'
     args '--output', file("$buildDir/analysis.html")
     args file("analyze-output.ipynb")
+}
+
+task cleanData {
+    doLast {
+        delete 'data'
+    }
 }

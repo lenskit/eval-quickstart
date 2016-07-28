@@ -2,20 +2,20 @@
 package org.lenskit.demo.eval;
 
 import it.unimi.dsi.fastutil.longs.LongSortedSet;
-import org.grouplens.lenskit.ItemScorer;
 import org.grouplens.lenskit.collections.LongUtils;
-import org.grouplens.lenskit.data.dao.EventCollectionDAO;
-import org.grouplens.lenskit.data.dao.EventDAO;
-import org.grouplens.lenskit.data.dao.UserEventDAO;
-import org.grouplens.lenskit.data.dao.PrefetchingUserEventDAO;
-import org.grouplens.lenskit.data.event.Rating;
-import org.grouplens.lenskit.data.event.Ratings;
 import org.grouplens.lenskit.vectors.MutableSparseVector;
 import org.junit.Before;
 import org.junit.Test;
+import org.lenskit.api.ItemScorer;
+import org.lenskit.data.dao.EventCollectionDAO;
+import org.lenskit.data.dao.EventDAO;
+import org.lenskit.data.dao.PrefetchingUserEventDAO;
+import org.lenskit.data.dao.UserEventDAO;
+import org.lenskit.data.ratings.Rating;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import static org.hamcrest.Matchers.closeTo;
 import static org.junit.Assert.assertFalse;
@@ -32,11 +32,11 @@ public class MeanScorerTest {
 
     @Before
     public void createRatingSource() {
-        List<Rating> rs = new ArrayList<Rating>();
-        rs.add(Ratings.make(1, 5, 3));
-        rs.add(Ratings.make(1, 7, 4));
-        rs.add(Ratings.make(8, 4, 5));
-        rs.add(Ratings.make(8, 5, 4));
+        List<Rating> rs = new ArrayList<>();
+        rs.add(Rating.create(1, 5, 3));
+        rs.add(Rating.create(1, 7, 4));
+        rs.add(Rating.create(8, 4, 5));
+        rs.add(Rating.create(8, 5, 4));
 
         // Global Mean: 16 / 4 = 4
 
@@ -60,7 +60,7 @@ public class MeanScorerTest {
         // u2 on i4 -> 5.0
         // u2 on i7 -> 4.0
         // u2 on i5 -> 3.5
-        dao = new EventCollectionDAO(rs);
+        dao = EventCollectionDAO.create(rs);
         ueDAO = new PrefetchingUserEventDAO(dao);
     }
 
@@ -70,50 +70,37 @@ public class MeanScorerTest {
 
     @Test
     public void testUserItemMeanScorer() {
-        ItemScorer scorer = new ExtendedItemUserMeanScorer(ueDAO, new ItemMeanModelBuilder(dao, 0).get(), 0);
+        ItemMeanModel model = new ItemMeanModelBuilder(dao, 0).get();
+        ItemScorer scorer = new ExtendedItemUserMeanScorer(ueDAO, model, 0);
+
+        assertThat(model.getGlobalMean(), closeTo(4.0, 1.0e-6));
+        assertThat(model.getItemOffset(5), closeTo(-0.5, 1.0e-6));
+        assertThat(model.getItemOffset(7), closeTo(0, 1.0e-6));
+        assertThat(model.getItemOffset(4), closeTo(1.0, 1.0e-6));
 
         long[] items = {5, 7, 10};
         double[] ratings = {3, 6, 4};
 
         // User 1
         MutableSparseVector scores1 = MutableSparseVector.wrap(items, ratings); // ratings ignored
-        scorer.score(1L, scores1);
-        assertThat(scores1.get(5), closeTo(3.25, 1.0e-5));
-        assertThat(scores1.get(7), closeTo(3.75, 1.0e-5));
-        assertThat(scores1.get(10), closeTo(3.75, 1.0e-5));  // user overall average
-        assertFalse(scores1.containsKey(4));
+        Map<Long,Double> results = scorer.score(1L, LongUtils.packedSet(items));
+        assertThat(results.get(5L), closeTo(3.25, 1.0e-5));
+        assertThat(results.get(7L), closeTo(3.75, 1.0e-5));
+        assertThat(results.get(10L), closeTo(3.75, 1.0e-5));  // user overall average
+        assertFalse(results.containsKey(4L));
 
         // User 8
         long[] items8 = {4, 5, 7};
 
-        MutableSparseVector scores8 = MutableSparseVector.wrap(items8, ratings); // ratings ignored
-        scorer.score(8L, scores8);
-        assertThat(scores8.get(5), closeTo(3.75, 1.0e-5));
-        assertThat(scores8.get(7), closeTo(4.25, 1.0e-5));
-        assertThat(scores8.get(4), closeTo(5.25, 1.0e-5));
+        results = scorer.score(8L, LongUtils.packedSet(items8));
+        assertThat(results.get(5L), closeTo(3.75, 1.0e-5));
+        assertThat(results.get(7L), closeTo(4.25, 1.0e-5));
+        assertThat(results.get(4L), closeTo(5.25, 1.0e-5));
 
         // User 2, not in the set of users in the DAO
-        MutableSparseVector scores2 = MutableSparseVector.wrap(items, ratings); // ratings ignored
-        scorer.score(2L, scores2);
-        assertThat(scores2.get(5), closeTo(3.5, 1.0e-5));
-        assertFalse(scores1.containsKey(4));
-        assertThat(scores2.get(7), closeTo(4, 1.0e-5));
-    }
-
-    @Test
-    public void testUserItemMeanMissing() {
-        ItemScorer scorer = new ExtendedItemUserMeanScorer(ueDAO, new ItemMeanModelBuilder(dao, 0).get(), 0);
-
-        long[] items = {5, 7, 10};
-        double[] ratings = {3, 6, 4};
-
-        // User 1
-        MutableSparseVector scores1 = MutableSparseVector.wrap(items, ratings); // ratings ignored
-        scores1.unset(5L);  // make sure scores are returned even if the ratings are not set
-        scorer.score(1L, scores1);
-        assertThat(scores1.get(5), closeTo(3.25, 1.0e-5));
-        assertThat(scores1.get(7), closeTo(3.75, 1.0e-5));
-        assertThat(scores1.get(10), closeTo(3.75, 1.0e-5));  // user overall average
-        assertFalse(scores1.containsKey(4));
+        results = scorer.score(2L, LongUtils.packedSet(items));
+        assertThat(results.get(5L), closeTo(3.5, 1.0e-5));
+        assertFalse(results.containsKey(4L));
+        assertThat(results.get(7L), closeTo(4, 1.0e-5));
     }
 }

@@ -1,21 +1,26 @@
 /* This file may be freely modified, used, and redistributed without restriction. */
 package org.lenskit.demo.eval;
 
-import org.grouplens.lenskit.baseline.MeanDamping;
-import org.grouplens.lenskit.basic.AbstractItemScorer;
-import org.grouplens.lenskit.data.dao.UserEventDAO;
-import org.grouplens.lenskit.data.event.Rating;
-import org.grouplens.lenskit.data.history.History;
-import org.grouplens.lenskit.data.history.RatingVectorUserHistorySummarizer;
-import org.grouplens.lenskit.data.history.UserHistory;
-import org.grouplens.lenskit.vectors.MutableSparseVector;
-import org.grouplens.lenskit.vectors.SparseVector;
+import it.unimi.dsi.fastutil.longs.Long2DoubleMap;
+import org.lenskit.api.Result;
+import org.lenskit.api.ResultMap;
+import org.lenskit.baseline.MeanDamping;
+import org.lenskit.basic.AbstractItemScorer;
+import org.lenskit.data.dao.UserEventDAO;
+import org.lenskit.data.history.History;
+import org.lenskit.data.history.UserHistory;
+import org.lenskit.data.ratings.Rating;
+import org.lenskit.data.ratings.Ratings;
+import org.lenskit.results.Results;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import javax.inject.Inject;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 
 /**
  * Scorer that returns the user's mean offset from item mean rating for all
@@ -60,25 +65,28 @@ public class ExtendedItemUserMeanScorer extends AbstractItemScorer {
      * @param ratings the user's rating profile
      * @return the mean offset from item mean rating.
      */
-    protected double computeUserOffset(SparseVector ratings) {
+    protected double computeUserOffset(Long2DoubleMap ratings) {
         if (ratings.isEmpty()) {
             return 0;
         }
 
         // we want to compute the average of the user's offset from item mean
-        // first subtract item means, in 2 phases: global mean and item mean offset
-        // sparse vector bulk operations let us do this very quickly
-        MutableSparseVector v = ratings.mutableCopy();
-        v.add(-model.getGlobalMean());
-        v.subtract(model.getItemOffsets());
+        double sum = 0;
+        int n = 0;
+        for (Long2DoubleMap.Entry e: ratings.long2DoubleEntrySet()) {
+            long item = e.getKey();
+            sum += e.getDoubleValue() - model.getGlobalMean() - model.getItemOffset(item);
+            n += 1;
+        }
 
         // now return the damped mean
-        return v.sum() / (v.size() + userDamping);
+        return sum / (n + userDamping);
     }
 
+    @Nonnull
     @Override
-    public void score(long user, @Nonnull MutableSparseVector scores) {
-        logger.debug("score called to attempt to score %d elements", scores.size());
+    public ResultMap scoreWithDetails(long user, @Nonnull Collection<Long> items) {
+        logger.debug("score called to attempt to score %d elements", items.size());
 
         // Get the user's profile
         UserHistory<Rating> profile = dao.getEventsForUser(user, Rating.class);
@@ -87,14 +95,18 @@ public class ExtendedItemUserMeanScorer extends AbstractItemScorer {
         }
 
         // Convert the user's profile into a rating vector
-        SparseVector vector = RatingVectorUserHistorySummarizer.makeRatingVector(profile);
-        double meanOffset = computeUserOffset(vector);
+        Long2DoubleMap ratings = Ratings.userRatingVector(profile);
+        double meanOffset = computeUserOffset(ratings);
+        double baseScore = model.getGlobalMean() + meanOffset;
 
-        // fill scores with the global rating
-        scores.fill(model.getGlobalMean());
-        // add in item offset for all items
-        scores.add(model.getItemOffsets());
-        // add user mean offset to all scores
-        scores.add(meanOffset);
+        // Accumulate a list of results (scores).
+        List<Result> results = new ArrayList<>();
+        for (long item: items) {
+            double score = baseScore + model.getItemOffsets().get(item);
+            results.add(Results.create(item, score));
+        }
+
+        // Convert this list ot a result map and return
+        return Results.newResultMap(results);
     }
 }
