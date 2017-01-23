@@ -58,7 +58,7 @@ task fetchData {
     doLast {
         mkdir dataDir
         ant {
-            get(src: 'http://www.grouplens.org/system/files/ml-100k.zip',
+            get(src: 'https://files.grouplens.org/papers/ml-100k.zip',
                 dest: zipFile,
                 skipExisting: true)
             unzip(src: zipFile, dest: dataDir) {
