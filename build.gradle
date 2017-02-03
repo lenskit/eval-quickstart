@@ -85,6 +85,8 @@ task crossfold(type: Crossfold, group: 'evaluate') {
 /* Run the LensKit evaluation */
 task evaluate(type: TrainTest, group: 'evaluate') {
     description 'Runs the LensKit evaluation.'
+    logFile "$buildDir/evaluate.log"
+    logFileLevel 'DEBUG'
 
     // we add our crossfold task as evaluation input
     dataSet crossfold
