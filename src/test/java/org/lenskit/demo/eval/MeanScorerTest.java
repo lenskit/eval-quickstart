@@ -1,17 +1,14 @@
 /* This file may be freely modified, used, and redistributed without restriction. */
 package org.lenskit.demo.eval;
 
-import it.unimi.dsi.fastutil.longs.LongSortedSet;
-import org.grouplens.lenskit.collections.LongUtils;
-import org.grouplens.lenskit.vectors.MutableSparseVector;
 import org.junit.Before;
 import org.junit.Test;
 import org.lenskit.api.ItemScorer;
-import org.lenskit.data.dao.EventCollectionDAO;
-import org.lenskit.data.dao.EventDAO;
-import org.lenskit.data.dao.PrefetchingUserEventDAO;
-import org.lenskit.data.dao.UserEventDAO;
+import org.lenskit.data.dao.DataAccessObject;
+import org.lenskit.data.dao.file.StaticDataSource;
+import org.lenskit.data.entities.EntityFactory;
 import org.lenskit.data.ratings.Rating;
+import org.lenskit.util.collections.LongUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -27,16 +24,16 @@ import static org.junit.Assert.assertThat;
  * @author <a href="http://www.grouplens.org">GroupLens Research</a>
  */
 public class MeanScorerTest {
-    private EventDAO dao;
-    private UserEventDAO ueDAO;
+    private DataAccessObject dao;
 
     @Before
     public void createRatingSource() {
+        EntityFactory efac = new EntityFactory();
         List<Rating> rs = new ArrayList<>();
-        rs.add(Rating.create(1, 5, 3));
-        rs.add(Rating.create(1, 7, 4));
-        rs.add(Rating.create(8, 4, 5));
-        rs.add(Rating.create(8, 5, 4));
+        rs.add(efac.rating(1, 5, 3));
+        rs.add(efac.rating(1, 7, 4));
+        rs.add(efac.rating(8, 4, 5));
+        rs.add(efac.rating(8, 5, 4));
 
         // Global Mean: 16 / 4 = 4
 
@@ -60,18 +57,13 @@ public class MeanScorerTest {
         // u2 on i4 -> 5.0
         // u2 on i7 -> 4.0
         // u2 on i5 -> 3.5
-        dao = EventCollectionDAO.create(rs);
-        ueDAO = new PrefetchingUserEventDAO(dao);
-    }
-
-    LongSortedSet itemSet(long item) {
-        return LongUtils.packedSet(item);
+        dao = StaticDataSource.fromList(rs).get();
     }
 
     @Test
     public void testUserItemMeanScorer() {
         ItemMeanModel model = new ItemMeanModelBuilder(dao, 0).get();
-        ItemScorer scorer = new ExtendedItemUserMeanScorer(ueDAO, model, 0);
+        ItemScorer scorer = new ExtendedItemUserMeanScorer(dao, model, 0);
 
         assertThat(model.getGlobalMean(), closeTo(4.0, 1.0e-6));
         assertThat(model.getItemOffset(5), closeTo(-0.5, 1.0e-6));
@@ -79,10 +71,8 @@ public class MeanScorerTest {
         assertThat(model.getItemOffset(4), closeTo(1.0, 1.0e-6));
 
         long[] items = {5, 7, 10};
-        double[] ratings = {3, 6, 4};
 
         // User 1
-        MutableSparseVector scores1 = MutableSparseVector.wrap(items, ratings); // ratings ignored
         Map<Long,Double> results = scorer.score(1L, LongUtils.packedSet(items));
         assertThat(results.get(5L), closeTo(3.25, 1.0e-5));
         assertThat(results.get(7L), closeTo(3.75, 1.0e-5));

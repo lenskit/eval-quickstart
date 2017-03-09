@@ -5,7 +5,7 @@ import it.unimi.dsi.fastutil.longs.Long2DoubleMap;
 import org.grouplens.grapht.annotation.DefaultProvider;
 import org.lenskit.baseline.MeanDamping;
 import org.lenskit.inject.Shareable;
-import org.lenskit.util.keys.Long2DoubleSortedArrayMap;
+import org.lenskit.util.collections.LongUtils;
 
 import java.io.Serializable;
 
@@ -32,7 +32,7 @@ public class ItemMeanModel implements Serializable {
     private final Long2DoubleMap itemOffsets;
 
     public ItemMeanModel(double global, Long2DoubleMap items) {
-        itemOffsets = new Long2DoubleSortedArrayMap(items);
+        itemOffsets = LongUtils.frozenMap(items);
         globalMean = global;
     }
 
@@ -62,5 +62,4 @@ public class ItemMeanModel implements Serializable {
     public double getItemOffset(long item) {
         return itemOffsets.get(item);
     }
-
 }

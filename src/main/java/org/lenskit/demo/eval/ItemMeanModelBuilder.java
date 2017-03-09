@@ -6,7 +6,7 @@ import it.unimi.dsi.fastutil.longs.Long2DoubleOpenHashMap;
 import it.unimi.dsi.fastutil.longs.Long2IntMap;
 import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
 import org.lenskit.baseline.MeanDamping;
-import org.lenskit.data.dao.EventDAO;
+import org.lenskit.data.dao.DataAccessObject;
 import org.lenskit.data.ratings.Rating;
 import org.lenskit.inject.Transient;
 import org.lenskit.util.io.ObjectStream;
@@ -22,7 +22,7 @@ import javax.inject.Provider;
 public class ItemMeanModelBuilder implements Provider<ItemMeanModel> {
     private static final Logger logger = LoggerFactory.getLogger(ItemMeanModelBuilder.class);
     private double damping = 0;
-    private EventDAO dao;
+    private DataAccessObject dao;
 
     /**
      * Construct a new provider.
@@ -33,7 +33,7 @@ public class ItemMeanModelBuilder implements Provider<ItemMeanModel> {
      *            towards the global mean.
      */
     @Inject
-    public ItemMeanModelBuilder(@Transient EventDAO dao, @MeanDamping double d) {
+    public ItemMeanModelBuilder(@Transient DataAccessObject dao, @MeanDamping double d) {
         this.dao = dao;
         damping = d;
     }
@@ -59,12 +59,9 @@ public class ItemMeanModelBuilder implements Provider<ItemMeanModel> {
         Long2IntMap itemRatingCounts = new Long2IntOpenHashMap();
         itemRatingCounts.defaultReturnValue(0);
 
-        try (ObjectStream<Rating> ratings = dao.streamEvents(Rating.class)) {
+        // Get a stream over all rating entities.
+        try (ObjectStream<Rating> ratings = dao.query(Rating.class).stream()) {
             for (Rating rating: ratings) {
-                if (!rating.hasValue()) {
-                    continue; // skip unrates
-                }
-
                 long i = rating.getItemId();
                 double v = rating.getValue();
                 total += v;
@@ -83,7 +80,7 @@ public class ItemMeanModelBuilder implements Provider<ItemMeanModel> {
         Long2DoubleMap offsets = new Long2DoubleOpenHashMap(itemRatingSums.size());
         // now iterate over our items
         for (Long2DoubleMap.Entry e: itemRatingSums.long2DoubleEntrySet()) {
-            final long iid = e.getKey();
+            final long iid = e.getLongKey();
             // compute the damped item mean
             final double itemCount = itemRatingCounts.get(iid) + damping;
             final double itemTotal = e.getDoubleValue() + damping * mean;

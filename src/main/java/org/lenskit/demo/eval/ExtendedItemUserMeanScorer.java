@@ -6,9 +6,8 @@ import org.lenskit.api.Result;
 import org.lenskit.api.ResultMap;
 import org.lenskit.baseline.MeanDamping;
 import org.lenskit.basic.AbstractItemScorer;
-import org.lenskit.data.dao.UserEventDAO;
-import org.lenskit.data.history.History;
-import org.lenskit.data.history.UserHistory;
+import org.lenskit.data.dao.DataAccessObject;
+import org.lenskit.data.entities.CommonAttributes;
 import org.lenskit.data.ratings.Rating;
 import org.lenskit.data.ratings.Ratings;
 import org.lenskit.results.Results;
@@ -19,7 +18,6 @@ import javax.annotation.Nonnull;
 import javax.inject.Inject;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -40,7 +38,7 @@ public class ExtendedItemUserMeanScorer extends AbstractItemScorer {
     private static final long serialVersionUID = 22L;
     private static final Logger logger = LoggerFactory.getLogger(ExtendedItemUserMeanScorer.class);
 
-    private final UserEventDAO dao;
+    private final DataAccessObject dao;
     private final double userDamping;  // damping for computing the user averages; more damping biases toward global.
     private final ItemMeanModel model;
 
@@ -52,7 +50,7 @@ public class ExtendedItemUserMeanScorer extends AbstractItemScorer {
      * @param inUserDamping The damping term.
      */
     @Inject
-    public ExtendedItemUserMeanScorer(UserEventDAO dao, ItemMeanModel inModel,
+    public ExtendedItemUserMeanScorer(DataAccessObject dao, ItemMeanModel inModel,
                                       @MeanDamping double inUserDamping) {
         this.dao = dao;
         model = inModel;
@@ -65,7 +63,7 @@ public class ExtendedItemUserMeanScorer extends AbstractItemScorer {
      * @param ratings the user's rating profile
      * @return the mean offset from item mean rating.
      */
-    protected double computeUserOffset(Long2DoubleMap ratings) {
+    private double computeUserOffset(Long2DoubleMap ratings) {
         if (ratings.isEmpty()) {
             return 0;
         }
@@ -74,7 +72,7 @@ public class ExtendedItemUserMeanScorer extends AbstractItemScorer {
         double sum = 0;
         int n = 0;
         for (Long2DoubleMap.Entry e: ratings.long2DoubleEntrySet()) {
-            long item = e.getKey();
+            long item = e.getLongKey();
             sum += e.getDoubleValue() - model.getGlobalMean() - model.getItemOffset(item);
             n += 1;
         }
@@ -88,11 +86,10 @@ public class ExtendedItemUserMeanScorer extends AbstractItemScorer {
     public ResultMap scoreWithDetails(long user, @Nonnull Collection<Long> items) {
         logger.debug("score called to attempt to score %d elements", items.size());
 
-        // Get the user's profile
-        UserHistory<Rating> profile = dao.getEventsForUser(user, Rating.class);
-        if (profile == null) {
-            profile = History.forUser(user, Collections.<Rating>emptyList());
-        }
+        // Get the user's rating history
+        List<Rating> profile = dao.query(Rating.class)
+                                  .withAttribute(CommonAttributes.USER_ID, user)
+                                  .get();
 
         // Convert the user's profile into a rating vector
         Long2DoubleMap ratings = Ratings.userRatingVector(profile);
