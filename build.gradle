@@ -3,6 +3,10 @@
  * This configuration pulls in things needed for the build.gradle script itself */
 buildscript {
     repositories {
+        // allow maven local to be turned on
+        if ((project.findProperty('maven.useLocal') ?: 'no') == 'yes') {
+            mavenLocal()
+        }
         // LensKit snapshots are published to the Sonatype snapshot repository
         maven {
             url 'https://oss.sonatype.org/content/repositories/snapshots/'
@@ -11,7 +15,7 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath 'org.lenskit:lenskit-gradle:3.0-M2'
+        classpath "org.lenskit:lenskit-gradle:${project.findProperty('lenskit.version') ?: '3.0-M2'}"
     }
 }
 
@@ -22,6 +26,10 @@ apply plugin: 'lenskit'
  * These repositories are used for your Java or Groovy code, and for running LensKit.
  */
 repositories {
+    // allow maven local to be turned on
+    if ((project.findProperty('maven.useLocal') ?: 'no') == 'yes') {
+        mavenLocal()
+    }
     maven {
         url 'https://oss.sonatype.org/content/repositories/snapshots/'
     }
@@ -30,9 +38,9 @@ repositories {
 
 dependencies {
     // Code needs to build with LensKit.
-    compile "org.lenskit:lenskit-all:3.0-M2"
+    compile "org.lenskit:lenskit-all:${project.findProperty('lenskit.version') ?: '3.0-M2'}"
     // To run the code, we also need the LensKit CLI.
-    runtime "org.lenskit:lenskit-cli:3.0-M2"
+    runtime "org.lenskit:lenskit-cli:${project.findProperty('lenskit.version') ?: '3.0-M2'}"
 
     // Tests use JUnit
     testCompile "junit:junit:4.12"
