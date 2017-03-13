@@ -3,3 +3,14 @@ ratings:
   format: tsv
   header: false
   entity_type: rating
+items:
+  file: ml-100k/u.item
+  format: delimited
+  delimiter: "|"
+  header: false
+  entity_type: item
+  columns:
+  - name: id
+    type: long
+  - name: name
+    type: string

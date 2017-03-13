@@ -139,6 +139,20 @@ task graphPersMean(type: JavaExec, group: 'debug') {
     args 'algorithms/pers-mean.groovy'
 }
 
+task recommendItemItem(type: JavaExec, group: 'run') {
+    dependsOn fetchData
+    classpath sourceSets.main.runtimeClasspath
+
+    main 'org.lenskit.cli.Main'
+    args '--log-file', "$buildDir/item-item.log", '--log-file-level', 'debug'
+    args 'recommend'
+    args '--data-source', 'data/ml-100k.yml'
+    args '-c', 'algorithms/item-item.groovy'
+
+    ext.users = (project.findProperty('users') ?: '100').split(/,/)
+    args users
+}
+
 task analyzeResults(type: Exec, group: 'evaluate') {
     description 'Post-processes evaluation results to draw charts.'
 
