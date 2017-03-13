@@ -1,6 +1,6 @@
-import org.lenskit.baseline.ItemMeanRatingItemScorer
-import org.lenskit.baseline.UserMeanBaseline
-import org.lenskit.baseline.UserMeanItemScorer
+import org.lenskit.bias.BiasItemScorer
+import org.lenskit.bias.BiasModel
+import org.lenskit.bias.UserItemBiasModel
 
-bind ItemScorer to UserMeanItemScorer
-bind (UserMeanBaseline, ItemScorer) to ItemMeanRatingItemScorer
+bind ItemScorer to BiasItemScorer
+bind BiasModel to UserItemBiasModel
