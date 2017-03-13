@@ -15,7 +15,7 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath "org.lenskit:lenskit-gradle:${project.findProperty('lenskit.version') ?: '3.0-M2'}"
+        classpath "org.lenskit:lenskit-gradle:${project.findProperty('lenskit.version') ?: '3.0-SNAPSHOT'}"
     }
 }
 
@@ -38,9 +38,9 @@ repositories {
 
 dependencies {
     // Code needs to build with LensKit.
-    compile "org.lenskit:lenskit-all:${project.findProperty('lenskit.version') ?: '3.0-M2'}"
+    compile "org.lenskit:lenskit-all:${project.findProperty('lenskit.version') ?: '3.0-SNAPSHOT'}"
     // To run the code, we also need the LensKit CLI.
-    runtime "org.lenskit:lenskit-cli:${project.findProperty('lenskit.version') ?: '3.0-M2'}"
+    runtime "org.lenskit:lenskit-cli:${project.findProperty('lenskit.version') ?: '3.0-SNAPSHOT'}"
 
     // Tests use JUnit
     testCompile "junit:junit:4.12"
@@ -117,6 +117,26 @@ task evaluate(type: TrainTest, group: 'evaluate') {
         listSize 10
         metric 'mrr'
     }
+}
+
+task graphItemItem(type: JavaExec, group: 'debug') {
+    classpath sourceSets.main.runtimeClasspath
+
+    main 'org.lenskit.cli.Main'
+    args 'graph'
+    args '-o', "$buildDir/item-item.svg"
+    args '-t', 'svg'
+    args 'algorithms/item-item.groovy'
+}
+
+task graphPersMean(type: JavaExec, group: 'debug') {
+    classpath sourceSets.main.runtimeClasspath
+
+    main 'org.lenskit.cli.Main'
+    args 'graph'
+    args '-o', "$buildDir/pers-mean.svg"
+    args '-t', 'svg'
+    args 'algorithms/pers-mean.groovy'
 }
 
 task analyzeResults(type: Exec, group: 'evaluate') {
