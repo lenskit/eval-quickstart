@@ -6,3 +6,4 @@
 .ipynb_checkpoints
 /data/ml-100k
 *.zip
+gradle.properties
