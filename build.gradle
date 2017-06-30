@@ -107,6 +107,7 @@ task evaluate(type: TrainTest, group: 'evaluate') {
     algorithm 'PersMean', 'algorithms/pers-mean.groovy'
     algorithm 'ItemItem', 'algorithms/item-item.groovy'
     algorithm 'Custom', 'algorithms/custom.groovy'
+    algorithm 'Popular', 'algorithms/popular.groovy'
 
     // and some evaluation tasks and metrics
     predict {
