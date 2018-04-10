@@ -1,11 +1,11 @@
-import org.lenskit.baseline.BaselineScorer
-import org.lenskit.baseline.ItemMeanRatingItemScorer
+import org.lenskit.bias.BiasModel
+import org.lenskit.bias.ItemBiasModel
 import org.lenskit.knn.item.ItemItemScorer
-import org.lenskit.transform.normalize.BaselineSubtractingUserVectorNormalizer
+import org.lenskit.transform.normalize.BiasUserVectorNormalizer
 import org.lenskit.transform.normalize.UserVectorNormalizer
 
 bind ItemScorer to ItemItemScorer
-bind UserVectorNormalizer to BaselineSubtractingUserVectorNormalizer
+bind UserVectorNormalizer to BiasUserVectorNormalizer
 within (UserVectorNormalizer) {
-    bind (BaselineScorer, ItemScorer) to ItemMeanRatingItemScorer
+    bind BiasModel to ItemBiasModel
 }
