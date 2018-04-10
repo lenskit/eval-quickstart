@@ -3,9 +3,11 @@
  * This configuration pulls in things needed for the build.gradle script itself */
 buildscript {
     repositories {
-        // allow maven local to be turned on
-        if ((project.findProperty('maven.useLocal') ?: 'no') == 'yes') {
-            mavenLocal()
+        // check for a local repository containing a test version of LensKit
+        if (project.file('lenskit-current-repo').exists()) {
+            maven {
+                url project.uri('lenskit-current-repo')
+            }
         }
         // LensKit snapshots are published to the Sonatype snapshot repository
         maven {
@@ -26,9 +28,11 @@ apply plugin: 'lenskit'
  * These repositories are used for your Java or Groovy code, and for running LensKit.
  */
 repositories {
-    // allow maven local to be turned on
-    if ((project.findProperty('maven.useLocal') ?: 'no') == 'yes') {
-        mavenLocal()
+    // check for a local repository containing a test version of LensKit
+    if (project.file('lenskit-current-repo').exists()) {
+        maven {
+            url project.uri('lenskit-current-repo')
+        }
     }
     maven {
         url 'https://oss.sonatype.org/content/repositories/snapshots/'
