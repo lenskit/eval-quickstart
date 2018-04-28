@@ -97,15 +97,15 @@ task crossfold(type: Crossfold, group: 'evaluate') {
 /* Run the LensKit evaluation */
 task evaluate(type: TrainTest, group: 'evaluate') {
     description 'Runs the LensKit evaluation.'
-    logFile "$buildDir/evaluate.log"
-    logFileLevel 'DEBUG'
+    logFile = "$buildDir/evaluate.log"
+    logFileLevel = 'DEBUG'
 
     // we add our crossfold task as evaluation input
     dataSet crossfold
 
     // send the output to appropriate files
-    outputFile "$buildDir/eval-results.csv"
-    userOutputFile "$buildDir/eval-users.csv"
+    outputFile = "$buildDir/eval-results.csv"
+    userOutputFile = "$buildDir/eval-users.csv"
 
     // configure our algorithms
     algorithm 'PersMean', 'algorithms/pers-mean.groovy'
